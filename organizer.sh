@@ -1,6 +1,21 @@
 #!/bin/bash
+
 srcdir=$1 # srcdir is the source directory
 desdir=$2 # desdir is the destination directory
+flag="ext" # sorting flag, default is "ext"
+
+# Check if the flag is provided
+if [ "$3" ]; then
+  if [ "$3" == "-s" ]; then
+    flag=$4
+  else
+    echo "Invalid flag. Please use -s ext or -s date."
+    exit 1
+  fi
+fi
+
+# Rest of the script remains the same
+
 folder_created=0 # track the number of folders created
 touch folder_count.txt # track of folders used
 touch output.txt # keeping track of files transferred
@@ -10,6 +25,8 @@ touch temp.txt
 if [ ! -d "$desdir" ]; then
   mkdir "$desdir"
   echo "Destination Directory $desdir does not exist. No worries, created one." >> output.txt
+else
+  echo "Destination Directory $desdir exists." >> output.txt
 fi
 
 function recurring_filename {
@@ -19,9 +36,8 @@ function recurring_filename {
   j=1
   newfilepath=$desdir"/"$dir"/"$recur_name"."$ext # newfilepath is the new name for a repeated filename in the same extdir
   while [ -e "$newfilepath" ]; do
-    new_newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
+    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
     let "j=j+1"
-    newfilepath=$new_newfilepath
   done
   # now we have got the new name for a recurring filepath and echo it
   echo "$newfilepath"
@@ -32,17 +48,26 @@ for i in $(find "$srcdir" -type f); do
   filename=$(basename "$i")
   name=$(echo "$filename" | sed 's/\([^\.]*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/[^\.]*\.\([^\.]*\)/\1/') # ext is extension
-  if [ -n "$ext" ]; then # -n ensures that the string returned is non-empty
-    extdir="Extension_.$ext" # extdir is the extension directory
+
+  if [ "$flag" == "ext" ]; then
+    if [ -n "$ext" ]; then # -n ensures that the string returned is non-empty
+      extdir="Extension_.$ext" # extdir is the extension directory
+    else
+      extdir="No_Extension"
+    fi
+  elif [ "$flag" == "date" ]; then
+    ctime=$(stat "$i" | awk '/Birth/ {print $2}' | awk 'BEGIN{FS="-"}{print $3$2$1}') # ctime is creation time
+    extdir="$ctime" # extdir is the date directory
   else
-    extdir="No_Extension"
+    echo "Invalid flag. Please use -s ext or -s date."
+    exit 1
   fi
 
   # check if extdir exists or not
   if [ ! -e "$desdir/$extdir" ]; then
     let "folder_created=folder_created+1"
     mkdir "$desdir/$extdir" # create a new extdir
-    echo "A new extension folder $extdir is created" >> output.txt
+    echo "A new $flag folder $extdir is created" >> output.txt
   fi
 
   # Keeping track of the times when which folders are used
@@ -57,30 +82,6 @@ for i in $(find "$srcdir" -type f); do
     newname=$(basename "$new_newfilepath")
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
     echo "$filename already exists, so renamed to $newname and stored in $extdir directory" >> output.txt
-  fi
-
-  # Checking creation time
-  ctime=$(stat "$i" | sed -n '/Birth/p' |  awk 'BEGIN{FS=" "}{print $2}' | awk 'BEGIN{FS="-"}{print $3$2$1}') # ctime is creation time
-
-  # check if ctime exists or not
-  if [ ! -e "$desdir/$ctime" ]; then
-    let "folder_created=folder_created+1"
-    mkdir "$desdir/$ctime" # create a new date folder
-    echo "A new date folder $ctime is created" >> output.txt
-  fi
-
-  # Keeping track of the times when which folders are used
-  echo "$ctime" >> temp.txt
-  # Now checking if the same filename already exists
-  newfilepath="$desdir/$ctime/$filename"
-  if [ ! -e "$newfilepath" ]; then
-    cp "$i" "$desdir/$ctime"
-    echo "Added $filename to $ctime date folder" >> output.txt
-  else
-    new_newfilepath=$(recurring_filename "$ctime" "$name" "$ext")
-    newname=$(basename "$new_newfilepath")
-    cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
-    echo "$filename already exists, so renamed to $newname and stored in $ctime date directory" >> output.txt
   fi
 done
 
