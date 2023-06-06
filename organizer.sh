@@ -85,11 +85,19 @@ function recurring_filename {
   recur_name=$2 # recur_name is the recurring filename
   ext=$3 # ext is the extension of recur_name
   j=1
-  newfilepath=$desdir"/"$dir"/"$recur_name"."$ext # newfilepath is the new name for a repeated filename in the same extdir
-  while [ -e "$newfilepath" ]; do
-    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
-    let "j=j+1"
-  done
+  if [[ $ext == "" ]]; then
+    newfilepath=$desdir"/"$dir"/"$recur_name # newfilepath is the new name for a repeated filename in the same extdir
+    while [ -e "$newfilepath" ]; do
+      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j
+      let "j=j+1"
+    done
+  else
+    newfilepath=$desdir"/"$dir"/"$recur_name"."$ext # newfilepath is the new name for a repeated filename in the same extdir
+    while [ -e "$newfilepath" ]; do
+      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
+      let "j=j+1"
+    done
+  fi
   # now we have got the new name for a recurring filepath and echo it
   echo "$newfilepath"
 }
@@ -116,6 +124,7 @@ for i in `find $srcdir -type f`; do
       extdir="Extension_.$ext" # extdir is the extension directory
     else
       extdir="No_Extension"
+      ext=""
     fi
   elif [ "$flag" == "date" ]; then
     ctime=$(stat "$i" | awk '/Birth/ {print $2}' | awk 'BEGIN{FS="-"}{print $3$2$1}') # ctime is creation time
