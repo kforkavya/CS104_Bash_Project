@@ -3,11 +3,26 @@
 srcdir=$1 # srcdir is the source directory
 desdir=$2 # desdir is the destination directory
 flag="ext" # sorting flag, default is "ext"
+delete_files=false # delete files flag, default is false
 
 # Check if the flag is provided
 if [ "$3" ]; then
   if [ "$3" == "-s" ]; then
     flag=$4
+  elif [ "$3" == "-d" ]; then
+    delete_files=true
+  else
+    echo "Invalid flag. Please use -s ext or -s date."
+    exit 1
+  fi
+fi
+
+# Check if the flag is provided
+if [ "$5" ]; then
+  if [ "$4" == "-s" ]; then
+    flag=$5
+  elif [ "$5" == "-d" ]; then
+    delete_files=true
   else
     echo "Invalid flag. Please use -s ext or -s date."
     exit 1
@@ -44,7 +59,7 @@ function recurring_filename {
 }
 
 # Now extracting files and checking their extensions and creation time
-for i in $(find "$srcdir" -type f); do
+for i in `find $srcdir -type f`; do
   filename=$(basename "$i")
   name=$(echo "$filename" | sed 's/\([^\.]*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/[^\.]*\.\([^\.]*\)/\1/') # ext is extension
@@ -82,6 +97,12 @@ for i in $(find "$srcdir" -type f); do
     newname=$(basename "$new_newfilepath")
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
     echo "$filename already exists, so renamed to $newname and stored in $extdir directory" >> output.txt
+  fi
+
+  # Delete the original file if the -d flag is specified
+  if [ "$delete_files" = true ]; then
+    rm "$i"
+    echo "Deleted original file: $i" >> output.txt
   fi
 done
 
