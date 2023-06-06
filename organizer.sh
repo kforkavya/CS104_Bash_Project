@@ -7,13 +7,15 @@ delete_files=false # delete files flag, default is false
 log_file=false #log_file flag, depends on -l flag presence
 log_name="" #name of log file as given by user with -l flag
 flag_s=false #flag for -s flag usage
+flag_e=false #flag for -e flag usage
+e_names="" #extensions entered through -e
 
 # Check if the flag is provided
 args=("$@")
 for ((i=2; i<${#args[@]}; i++)); do
   if [[ ${args[i]} == "-d" ]]; then
-    if [ "$deleted_files" = false ]; then
-      deleted_files=true
+    if [ "$delete_files" = false ]; then
+      delete_files=true
     else
       echo "Enter -d only 1 time. Entering more than one -d is wrong syntax."
       exit 1
@@ -39,6 +41,11 @@ for ((i=2; i<${#args[@]}; i++)); do
   elif [[ ${args[i]} == "-l" ]]; then
     log_file=true
     log_name=${args[i+1]}
+    ((i=i+1))
+  elif [[ ${args[i]} == "-e" ]]; then
+    flag_e=true
+    e_names=${args[i+1]}
+    IFS=',' read -ra array <<< "$e_names"
     ((i=i+1))
   else
     echo "Invalid flag. Please try filling correct flags: -d, -s, -l, -e"
@@ -77,11 +84,21 @@ function recurring_filename {
 
 # Now extracting files and checking their extensions and creation time
 for i in `find $srcdir -type f`; do
+  flag_search_e=false
   filename=$(basename "$i")
   src_location="${i%/*}" #source location of file, found using formatted string
   name=$(echo "$filename" | sed 's/\([^\.]*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/[^\.]*\.\([^\.]*\)/\1/') # ext is extension
-
+  if [ $flag_e = true ]; then
+    for element in ${array[@]}; do
+      if [ $ext = $element ]; then
+        flag_search_e=true
+      fi
+    done
+  fi
+  if [ $flag_search_e = true ]; then
+    continue
+  fi
   if [ "$flag" == "ext" ]; then
     if [ -n "$ext" ]; then # -n ensures that the string returned is non-empty
       extdir="Extension_.$ext" # extdir is the extension directory
