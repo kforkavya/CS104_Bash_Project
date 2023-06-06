@@ -38,13 +38,24 @@ for ((i=2; i<${#args[@]}; i++)); do
       echo "Enter -s only 1 time. Entering more than one -s is wrong syntax."
       exit 1
     fi
+  elif [[ ${args[i]} == "-s" && ${args[i+1]} != "date" && ${args[i+1]} != "ext" ]]; then
+    echo "No argument with -s, use \"ext\" or \"date\"."
+    exit 1
   elif [[ ${args[i]} == "-l" ]]; then
     log_file=true
     log_name=${args[i+1]}
+    if [[ $log_name == "-d" || $log_name == "-s" || $log_name == "-e" || $log_name == "-l" ]]; then
+      echo "Put valid filename for log file."
+      exit 1
+    fi
     ((i=i+1))
   elif [[ ${args[i]} == "-e" ]]; then
     flag_e=true
     e_names=${args[i+1]}
+    if [[ $e_names == "-d" || $e_names == "-s" || $e_names == "-e" || $e_names == "-l" ]]; then
+      echo "Put valid extensions for -e flag."
+      exit 1
+    fi
     IFS=',' read -ra array <<< "$e_names"
     ((i=i+1))
   else
@@ -59,10 +70,11 @@ folder_created=0 # track the number of folders created
 touch output.txt # keeping track of files transferred
 touch temp.txt
 touch log.txt #log file for -l flag
+touch hash_file #file that contains hash of visited objects
 
 # Checking if the destination directory doesn't exist, then create a new one
 if [ ! -d "$desdir" ]; then
-  mkdir "$desdir"
+  mkdir -p "$desdir"
   echo "Destination Directory $desdir does not exist. No worries, created one." >> output.txt
 else
   echo "Destination Directory $desdir exists." >> output.txt
@@ -100,7 +112,7 @@ for i in `find $srcdir -type f`; do
     continue
   fi
   if [ "$flag" == "ext" ]; then
-    if [ -n "$ext" ]; then # -n ensures that the string returned is non-empty
+    if [ $(echo $filename | grep -c "\.") -ne 0 ]; then # -n ensures that the string returned is non-empty
       extdir="Extension_.$ext" # extdir is the extension directory
     else
       extdir="No_Extension"
@@ -144,6 +156,26 @@ for i in `find $srcdir -type f`; do
   fi
 done
 
+###############################################################
+#Hash Deleting Files
+flag_hash=false
+for i in `find $desdir -type f`; do
+  flag_hash=false
+  hash=$(sha256sum $i | cut -d ' ' -f 1)
+  for j in $(cat hash_file); do
+    if [[ $hash == $j ]]; then
+      flag_hash=true
+      break
+    fi
+  done
+  if [ $flag_hash = true ]; then
+    rm $i
+  else
+    echo $hash >> hash_file
+  fi
+done
+###############################################################
+
 echo "Folders created: $folder_created"
 if [ $log_file = true ]; then
   echo "Log file created and saved as $log_name"
@@ -156,3 +188,4 @@ fi
 echo "Number of files in each folder:-"
 awk '{Grp[$1]++} END {for (i in Grp) print i":"Grp[i]}' temp.txt # This command prepares a dictionary of extensions/creation dates as keys and frequencies as values
 rm temp.txt
+rm hash_file
