@@ -4,17 +4,41 @@ srcdir=$1 # srcdir is the source directory
 desdir=$2 # desdir is the destination directory
 flag="ext" # sorting flag, default is "ext"
 delete_files=false # delete files flag, default is false
+log_file=false #log_file flag, depends on -l flag presence
+log_name="" #name of log file as given by user with -l flag
+flag_s=false #flag for -s flag usage
 
 # Check if the flag is provided
 args=("$@")
 for ((i=2; i<${#args[@]}; i++)); do
   if [[ ${args[i]} == "-d" ]]; then
-    delete_files=true
+    if [ "$deleted_files" = false ]; then
+      deleted_files=true
+    else
+      echo "Enter -d only 1 time. Entering more than one -d is wrong syntax."
+      exit 1
+    fi
   elif [[ ${args[i]} == "-s" && ${args[i+1]} == "ext" ]]; then
-    flag="ext"
-    ((i=i+1))
+    if [ $flag_s = false ]; then
+      flag="ext"
+      ((i=i+1))
+      flag_s=true
+    else
+      echo "Enter -s only 1 time. Entering more than one -s is wrong syntax."
+      exit 1
+    fi
   elif [[ ${args[i]} == "-s" && ${args[i+1]} == "date" ]]; then
-    flag="date"
+    if [ $flag_s = false ]; then
+      flag="date"
+      ((i=i+1))
+      flag_s=true
+    else
+      echo "Enter -s only 1 time. Entering more than one -s is wrong syntax."
+      exit 1
+    fi
+  elif [[ ${args[i]} == "-l" ]]; then
+    log_file=true
+    log_name=${args[i+1]}
     ((i=i+1))
   else
     echo "Invalid flag. Please try filling correct flags: -d, -s, -l, -e"
@@ -25,9 +49,9 @@ done
 # Rest of the script remains the same
 
 folder_created=0 # track the number of folders created
-touch folder_count.txt # track of folders used
 touch output.txt # keeping track of files transferred
 touch temp.txt
+touch log.txt #log file for -l flag
 
 # Checking if the destination directory doesn't exist, then create a new one
 if [ ! -d "$desdir" ]; then
@@ -54,6 +78,7 @@ function recurring_filename {
 # Now extracting files and checking their extensions and creation time
 for i in `find $srcdir -type f`; do
   filename=$(basename "$i")
+  src_location="${i%/*}" #source location of file, found using formatted string
   name=$(echo "$filename" | sed 's/\([^\.]*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/[^\.]*\.\([^\.]*\)/\1/') # ext is extension
 
@@ -80,6 +105,8 @@ for i in `find $srcdir -type f`; do
 
   # Keeping track of the times when which folders are used
   echo "$extdir" >> temp.txt
+  #Updating log file
+  echo "Added $filename from $src_location to $desdir/$extdir folder at `date +"%Y-%m-%d %T"`" >> log.txt
   # Now checking if the same filename already exists
   newfilepath="$desdir/$extdir/$filename"
   if [ ! -e "$newfilepath" ]; then
@@ -96,13 +123,19 @@ for i in `find $srcdir -type f`; do
   if [ "$delete_files" = true ]; then
     rm "$i"
     echo "Deleted original file: $i" >> output.txt
+    echo "Deleted file: $i at `date +"%Y-%m-%d %T"`" >> log.txt
   fi
 done
 
 echo "Folders created: $folder_created"
-cat output.txt
+if [ $log_file = true ]; then
+  echo "Log file created and saved as $log_name"
+  mv log.txt $log_name
+else
+  rm log.txt
+  cat output.txt
+  rm output.txt
+fi
 echo "Number of files in each folder:-"
 awk '{Grp[$1]++} END {for (i in Grp) print i":"Grp[i]}' temp.txt # This command prepares a dictionary of extensions/creation dates as keys and frequencies as values
-rm output.txt
 rm temp.txt
-rm folder_count.txt
