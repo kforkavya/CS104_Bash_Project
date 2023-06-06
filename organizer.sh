@@ -6,28 +6,21 @@ flag="ext" # sorting flag, default is "ext"
 delete_files=false # delete files flag, default is false
 
 # Check if the flag is provided
-if [ "$3" ]; then
-  if [ "$3" == "-s" ]; then
-    flag=$4
-  elif [ "$3" == "-d" ]; then
+args=("$@")
+for ((i=2; i<${#args[@]}; i++)); do
+  if [[ ${args[i]} == "-d" ]]; then
     delete_files=true
+  elif [[ ${args[i]} == "-s" && ${args[i+1]} == "ext" ]]; then
+    flag="ext"
+    ((i=i+1))
+  elif [[ ${args[i]} == "-s" && ${args[i+1]} == "date" ]]; then
+    flag="date"
+    ((i=i+1))
   else
-    echo "Invalid flag. Please use -s ext or -s date."
+    echo "Invalid flag. Please try filling correct flags: -d, -s, -l, -e"
     exit 1
   fi
-fi
-
-# Check if the flag is provided
-if [ "$5" ]; then
-  if [ "$4" == "-s" ]; then
-    flag=$5
-  elif [ "$5" == "-d" ]; then
-    delete_files=true
-  else
-    echo "Invalid flag. Please use -s ext or -s date."
-    exit 1
-  fi
-fi
+done
 
 # Rest of the script remains the same
 
