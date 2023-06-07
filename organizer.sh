@@ -71,6 +71,7 @@ touch output.txt # keeping track of files transferred
 touch temp.txt
 touch log.txt #log file for -l flag
 touch hash_file #file that contains hash of visited objects
+mkdir "Temp_Zip_Folder"
 
 # Checking if the destination directory doesn't exist, then create a new one
 if [ ! -d "$desdir" ]; then
@@ -103,12 +104,13 @@ function recurring_filename {
 }
 
 # Now extracting files and checking their extensions and creation time
-for i in `find $srcdir -type f`; do
+function main {
+for i in `find $1 -type f`; do
   flag_search_e=false
   filename=$(basename "$i")
   src_location="${i%/*}" #source location of file, found using formatted string
-  name=$(echo "$filename" | sed 's/\([^\.]*\)\.[^\.]*/\1/') # name without extension
-  ext=$(echo "$filename" | sed 's/[^\.]*\.\([^\.]*\)/\1/') # ext is extension
+  name=$(echo "$filename" | sed 's/\(.*\)\.[^\.]*/\1/') # name without extension
+  ext=$(echo "$filename" | sed 's/.*\.\([^\.]*\)/\1/') # ext is extension
   if [ $flag_e = true ]; then
     for element in ${array[@]}; do
       if [ $ext = $element ]; then
@@ -156,7 +158,14 @@ for i in `find $srcdir -type f`; do
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
     echo "$filename already exists, so renamed to $newname and stored in $extdir directory" >> output.txt
   fi
-
+  
+  #############################################################
+  if [[ $ext == "zip" ]]; then
+    unzip $i -d "Temp_Zip_Folder"
+    main "Temp_Zip_Folder/"$name"/"
+  fi
+  #############################################################
+  
   # Delete the original file if the -d flag is specified
   if [ "$delete_files" = true ]; then
     rm "$i"
@@ -164,6 +173,9 @@ for i in `find $srcdir -type f`; do
     echo "Deleted file: $i at `date +"%Y-%m-%d %T"`" >> log.txt
   fi
 done
+}
+
+main $srcdir
 
 ###############################################################
 #Hash Deleting Files
@@ -198,3 +210,4 @@ echo "Number of files in each folder:-"
 awk '{Grp[$1]++} END {for (i in Grp) print i":"Grp[i]}' temp.txt # This command prepares a dictionary of extensions/creation dates as keys and frequencies as values
 rm temp.txt
 rm hash_file
+rm -r "Temp_Zip_Folder"
