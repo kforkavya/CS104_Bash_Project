@@ -44,7 +44,7 @@ for ((i=2; i<${#args[@]}; i++)); do
   elif [[ ${args[i]} == "-l" ]]; then
     log_file=true
     log_name=${args[i+1]}
-    if [[ $log_name == "-d" || $log_name == "-s" || $log_name == "-e" || $log_name == "-l" ]]; then
+    if [[ $log_name == "-d" || $log_name == "-s" || $log_name == "-e" || $log_name == "-l" || $log_name == "" ]]; then
       echo "Put valid filename for log file."
       exit 1
     fi
@@ -52,7 +52,7 @@ for ((i=2; i<${#args[@]}; i++)); do
   elif [[ ${args[i]} == "-e" ]]; then
     flag_e=true
     e_names=${args[i+1]}
-    if [[ $e_names == "-d" || $e_names == "-s" || $e_names == "-e" || $e_names == "-l" ]]; then
+    if [[ $e_names == "-d" || $e_names == "-s" || $e_names == "-e" || $e_names == "-l" || $e_names == "" ]]; then
       echo "Put valid extensions for -e flag."
       exit 1
     fi
@@ -72,6 +72,7 @@ touch temp.txt
 touch log.txt #log file for -l flag
 touch hash_file #file that contains hash of visited objects
 mkdir "Temp_Zip_Folder"
+touch find_list
 
 # Checking if the destination directory doesn't exist, then create a new one
 if [ ! -d "$desdir" ]; then
@@ -105,12 +106,13 @@ function recurring_filename {
 
 # Now extracting files and checking their extensions and creation time
 function main {
-for i in `find $1 -type f`; do
+ find $1 -type f -printf '%p\n' | while read -r i; do
   flag_search_e=false
   filename=$(basename "$i")
   src_location="${i%/*}" #source location of file, found using formatted string
   name=$(echo "$filename" | sed 's/\(.*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/.*\.\([^\.]*\)/\1/') # ext is extension
+  
   if [ $flag_e = true ]; then
     for element in ${array[@]}; do
       if [ $ext = $element ]; then
@@ -163,6 +165,8 @@ for i in `find $1 -type f`; do
   if [[ $ext == "zip" ]]; then
     unzip $i -d "Temp_Zip_Folder"
     main "Temp_Zip_Folder/"$name"/"
+    echo "Unzipping $filename" >> output.txt
+    echo "Unzipped $filename at `date +"%Y-%m-%d %T"`" >> log.txt
   fi
   #############################################################
   
@@ -180,7 +184,7 @@ main $srcdir
 ###############################################################
 #Hash Deleting Files
 flag_hash=false
-for i in `find $desdir -type f`; do
+find $desdir -type f -printf '%p\n' | while read -r i; do
   flag_hash=false
   hash=$(sha256sum $i | cut -d ' ' -f 1)
   for j in $(cat hash_file); do
@@ -211,3 +215,4 @@ awk '{Grp[$1]++} END {for (i in Grp) print i":"Grp[i]}' temp.txt # This command 
 rm temp.txt
 rm hash_file
 rm -r "Temp_Zip_Folder"
+rm find_list
