@@ -66,7 +66,6 @@ done
 
 # Rest of the script remains the same
 
-folder_created=0 # track the number of folders created
 touch output.txt # keeping track of files transferred
 touch temp.txt
 touch log.txt #log file for -l flag
