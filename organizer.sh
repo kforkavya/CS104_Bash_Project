@@ -112,7 +112,7 @@ function main {
   src_location="${i%/*}" #source location of file, found using formatted string
   name=$(echo "$filename" | sed 's/\(.*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/.*\.\([^\.]*\)/\1/') # ext is extension
-  
+   
   if [ $flag_e = true ]; then
     for element in ${array[@]}; do
       if [ $ext = $element ]; then
@@ -140,7 +140,6 @@ function main {
 
   # check if extdir exists or not
   if [ ! -e "$desdir/$extdir" ]; then
-    let "folder_created=folder_created+1"
     mkdir "$desdir/$extdir" # create a new extdir
     echo "A new $flag folder $extdir is created" >> output.txt
   fi
@@ -185,8 +184,9 @@ main $srcdir
 #Hash Deleting Files
 flag_hash=false
 find $desdir -type f -printf '%p\n' | while read -r i; do
+  filename=$(basename $i)
   flag_hash=false
-  hash=$(sha256sum $i | cut -d ' ' -f 1)
+  hash=$(sha256sum "$i")
   for j in $(cat hash_file); do
     if [[ $hash == $j ]]; then
       flag_hash=true
@@ -201,7 +201,7 @@ find $desdir -type f -printf '%p\n' | while read -r i; do
 done
 ###############################################################
 
-echo "Folders created: $folder_created"
+echo "Folders created: $(sort temp.txt | uniq | wc -l)"
 if [ $log_file = true ]; then
   echo "Log file created and saved as $log_name"
   mv log.txt $log_name
