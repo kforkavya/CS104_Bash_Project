@@ -111,7 +111,7 @@ function main {
   src_location="${i%/*}" #source location of file, found using formatted string
   name=$(echo "$filename" | sed 's/\(.*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/.*\.\([^\.]*\)/\1/') # ext is extension
-   
+  
   if [ $flag_e = true ]; then
     for element in ${array[@]}; do
       if [ $ext = $element ]; then
@@ -123,7 +123,9 @@ function main {
     continue
   fi
   if [ "$flag" == "ext" ]; then
-    if [ $(echo $filename | grep -c "\.") -ne 0 ]; then # -n ensures that the string returned is non-empty
+    if [ $(echo $filename | grep -c '^\.') -gt 0 ]; then #that means it is hidden file
+      extdir="Hidden_Files"
+    elif [ $(echo $filename | grep -c "\.") -ne 0 ]; then # -n ensures that the string returned is non-empty
       extdir="Extension_.$ext" # extdir is the extension directory
     else
       extdir="No_Extension"
