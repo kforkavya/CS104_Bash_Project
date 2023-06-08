@@ -151,11 +151,18 @@ function recurring_filename {
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j # newfilepath is the new name for a repeated filename in the same extdir
     if [ -e "$newfilepath" ]; then
       newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
+      while [ -e $newfilepath ]; do
+        newfilepath=$newfilepath"_"$(date +"%Y-%m-%d_%T")
+      done
     fi
   else
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext # newfilepath is the new name for a repeated filename in the same extdir
-    if [ -e "$newfilepath" ]; then
-      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
+    if [ -e $newfilepath ]; then
+      s=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
+      while [ -e $s"."$ext ]; do
+        s=$s"_"$(date +"%Y-%m-%d_%T")
+      done
+      newfilepath=$s"."$ext
     fi
   fi
   # now we have got the new name for a recurring filepath and echo it
