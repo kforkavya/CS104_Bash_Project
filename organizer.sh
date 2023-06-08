@@ -1,14 +1,45 @@
 #!/bin/bash
 
-srcdir=$1 # srcdir is the source directory
-desdir=$2 # desdir is the destination directory
-flag="ext" # sorting flag, default is "ext"
-delete_files=false # delete files flag, default is false
-log_file=false #log_file flag, depends on -l flag presence
-log_name="" #name of log file as given by user with -l flag
-flag_s=false #flag for -s flag usage
-flag_e=false #flag for -e flag usage
-e_names="" #extensions entered through -e
+# Define color codes
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Function to print colored messages
+print_message() {
+  local color=$1
+  local message=$2
+  echo -e "${color}${message}${NC}"
+}
+
+# Check if the flag is provided
+srcdir=$1  # Source directory
+desdir=$2  # Destination directory
+flag="ext"  # Sorting flag, default is "ext"
+delete_files=false  # Delete files flag, default is false
+log_file=false  # Log file flag, depends on -l flag presence
+log_name=""  # Name of log file as given by user with -l flag
+flag_s=false  # Flag for -s flag usage
+flag_e=false  # Flag for -e flag usage
+e_names=""  # Extensions entered through -e
+
+# Validate and process source directory
+if [[ -z "$srcdir" ]]; then
+  print_message "${RED}" "⚠️ Error: Source directory not provided. Please provide the source directory as the first argument."
+  exit 1
+fi
+
+if [[ ! -d "$srcdir" ]]; then
+  print_message "${RED}" "⚠️ Error: Source directory '$srcdir' does not exist."
+  exit 1
+fi
+
+if [[ "$desdir" == "-l" || "$desdir" == "-d" || "$desdir" == "-e" || "$desdir" == "-s" || "$desdir" == "" ]]; then
+  print_message "${RED}" "⚠️ Error: Provide an destination directory argument."
+  exit 1
+fi
 
 # Check if the flag is provided
 args=("$@")
@@ -17,7 +48,7 @@ for ((i=2; i<${#args[@]}; i++)); do
     if [ "$delete_files" = false ]; then
       delete_files=true
     else
-      echo "Enter -d only 1 time. Entering more than one -d is wrong syntax."
+      print_message "${RED}" "⚠️Enter -d only 1 time. Entering more than one -d is wrong syntax."
       exit 1
     fi
   elif [[ ${args[i]} == "-s" && ${args[i+1]} == "ext" ]]; then
@@ -26,7 +57,7 @@ for ((i=2; i<${#args[@]}; i++)); do
       ((i=i+1))
       flag_s=true
     else
-      echo "Enter -s only 1 time. Entering more than one -s is wrong syntax."
+      print_message "${RED}" "⚠️Enter -s only 1 time. Entering more than one -s is wrong syntax."
       exit 1
     fi
   elif [[ ${args[i]} == "-s" && ${args[i+1]} == "date" ]]; then
@@ -35,17 +66,17 @@ for ((i=2; i<${#args[@]}; i++)); do
       ((i=i+1))
       flag_s=true
     else
-      echo "Enter -s only 1 time. Entering more than one -s is wrong syntax."
+      print_message "${RED}" "⚠️Enter -s only 1 time. Entering more than one -s is wrong syntax."
       exit 1
     fi
   elif [[ ${args[i]} == "-s" && ${args[i+1]} != "date" && ${args[i+1]} != "ext" ]]; then
-    echo "No argument with -s, use \"ext\" or \"date\"."
+    print_message "${RED}" "⚠️No argument with -s, use \"ext\" or \"date\"."
     exit 1
   elif [[ ${args[i]} == "-l" ]]; then
     log_file=true
     log_name=${args[i+1]}
     if [[ $log_name == "-d" || $log_name == "-s" || $log_name == "-e" || $log_name == "-l" || $log_name == "" ]]; then
-      echo "Put valid filename for log file."
+      print_message "${RED}" "⚠️Put valid filename for log file."
       exit 1
     fi
     ((i=i+1))
@@ -53,18 +84,16 @@ for ((i=2; i<${#args[@]}; i++)); do
     flag_e=true
     e_names=${args[i+1]}
     if [[ $e_names == "-d" || $e_names == "-s" || $e_names == "-e" || $e_names == "-l" || $e_names == "" ]]; then
-      echo "Put valid extensions for -e flag."
+      print_message "${RED}" "⚠️Put valid extensions for -e flag."
       exit 1
     fi
     IFS=',' read -ra array <<< "$e_names"
     ((i=i+1))
   else
-    echo "Invalid flag. Please try filling correct flags: -d, -s, -l, -e"
+    print_message "${RED}" "⚠️Invalid flag. Please try filling correct flags: -d, -s, -l, -e"
     exit 1
   fi
 done
-
-# Rest of the script remains the same
 
 touch output.txt # keeping track of files transferred
 touch temp.txt
@@ -73,12 +102,31 @@ touch hash_file #file that contains hash of visited objects
 mkdir "Temp_Zip_Folder"
 touch find_list
 
-# Checking if the destination directory doesn't exist, then create a new one
-if [ ! -d "$desdir" ]; then
-  mkdir -p "$desdir"
-  echo "Destination Directory $desdir does not exist. No worries, created one." >> output.txt
-else
-  echo "Destination Directory $desdir exists." >> output.txt
+# Validate and process destination directory
+if [[ -z "$desdir" ]]; then
+  print_message "${RED}" "⚠️ Error: Destination directory not provided. Please provide the destination directory as the second argument."
+  exit 1
+fi
+
+# Welcome message
+echo -e "${BLUE}==============================================="
+echo -e "          Welcome to the Amazing Script         "
+echo -e "===============================================${NC}"
+echo -e "${GREEN}"
+echo -e "   __    _  _______  _______  _______ "
+echo -e "  |  \  | ||       ||   _   ||       |"
+echo -e "  |   \ | ||    ___||  |_|  ||_     _|"
+echo -e "  |    \| ||   |___ |       |  |   |  "
+echo -e "  |  |\   ||    ___||       |  |   |  "
+echo -e "  |  | \  ||   |___ |   _   |  |   |  "
+echo -e "  |__|  \_||_______||__| |__|  |___|  "
+echo -e "${NC}"
+
+
+if [[ ! -d "$desdir" ]]; then
+  print_message "${RED}" "⚠️ Error: Destination directory '$desdir' does not exist."
+  print_message "${GREEN}" "Don't worry creating one..."
+  mkdir -p $desdir
 fi
 
 function recurring_filename {
@@ -135,25 +183,25 @@ function main {
     ctime=$(stat "$i" | awk '/Birth/ {print $2}' | awk 'BEGIN{FS="-"}{print $3$2$1}') # ctime is creation time
     extdir="$ctime" # extdir is the date directory
   else
-    echo "Invalid flag. Please use -s ext or -s date."
+    echo -e "${RED}Invalid flag. Please use -s ext or -s date.${NC}"
     exit 1
   fi
 
   # check if extdir exists or not
   if [ ! -e "$desdir/$extdir" ]; then
     mkdir "$desdir/$extdir" # create a new extdir
-    echo "A new $flag folder $extdir is created" >> output.txt
+    echo -e "${GREEN}A new $flag folder $extdir is created${NC}" >> output.txt
   fi
 
   # Keeping track of the times when which folders are used
   echo "$extdir" >> temp.txt
   #Updating log file
-  echo "Added $filename from $src_location to $desdir/$extdir folder at `date +"%Y-%m-%d %T"`" >> log.txt
+  echo "Added $filename from $src_location to $desdir/$extdir folder at $(date +"%Y-%m-%d %T")" >> log.txt
   # Now checking if the same filename already exists
   newfilepath="$desdir/$extdir/$filename"
   if [ ! -e "$newfilepath" ]; then
     cp "$i" "$desdir/$extdir"
-    echo "Added $filename to $extdir folder" >> output.txt
+    echo -e "${GREEN}Added $filename to $extdir folder${NC}" >> output.txt
   else
     new_newfilepath=$(recurring_filename "$extdir" "$name" "$ext")
     newname=$(basename "$new_newfilepath")
@@ -165,16 +213,16 @@ function main {
   if [[ $ext == "zip" ]]; then
     unzip $i -d "Temp_Zip_Folder"
     main "Temp_Zip_Folder/"$name"/"
-    echo "Unzipping $filename" >> output.txt
-    echo "Unzipped $filename at `date +"%Y-%m-%d %T"`" >> log.txt
+    echo -e "${GREEN}Unzipping $filename${NC}" >> output.txt
+    echo "Unzipped $filename at $(date +"%Y-%m-%d %T")" >> log.txt
   fi
   #############################################################
   
   # Delete the original file if the -d flag is specified
   if [ "$delete_files" = true ]; then
     rm "$i"
-    echo "Deleted original file: $i" >> output.txt
-    echo "Deleted file: $i at `date +"%Y-%m-%d %T"`" >> log.txt
+    echo -e "${YELLOW}Deleted original file: $i${NC}" >> output.txt
+    echo "Deleted file: $i at $(date +"%Y-%m-%d %T")" >> log.txt
   fi
 done
 }
@@ -202,18 +250,30 @@ find $desdir -type f -printf '%p\n' | while read -r i; do
 done
 ###############################################################
 
-echo "Folders created: $(sort temp.txt | uniq | wc -l)"
+echo -e "Folders created: $(sort temp.txt | uniq | wc -l)"
 if [ $log_file = true ]; then
-  echo "Log file created and saved as $log_name"
+  echo -e "${GREEN}Log file created and saved as $log_name${NC}"
   mv log.txt $log_name
 else
   rm log.txt
   cat output.txt
   rm output.txt
 fi
-echo "Number of files in each folder:-"
-awk '{Grp[$1]++} END {for (i in Grp) print i":"Grp[i]}' temp.txt # This command prepares a dictionary of extensions/creation dates as keys and frequencies as values
+echo -e "Number of files in each folder:-"
+awk '{Grp[$1]++} END {for (Ind in Grp) {printf "%s\t%s\n", Ind, Grp[Ind]}}' temp.txt
 rm temp.txt
 rm hash_file
 rm -r "Temp_Zip_Folder"
-rm find_list
+
+# Goodbye message
+echo -e "${BLUE}=============================================================="
+echo -e "        Script Execution Completed Successfully!      "
+echo -e "==============================================================${NC}"
+echo -e "${YELLOW}"
+echo -e "███████╗██╗  ██╗ █████╗ ████████╗██╗  ██╗██╗████████╗"
+echo -e "██╔════╝██║  ██║██╔══██╗╚══██╔══╝██║  ██║██║╚══██╔══╝"
+echo -e "███████╗███████║███████║   ██║   ███████║██║   ██║   "
+echo -e "╚════██║██╔══██║██╔══██║   ██║   ██╔══██║██║   ██║   "
+echo -e "███████║██║  ██║██║  ██║   ██║   ██║  ██║██║   ██║   "
+echo -e "╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝   "
+echo -e "${NC}"
