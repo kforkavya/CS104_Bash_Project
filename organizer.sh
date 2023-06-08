@@ -129,23 +129,34 @@ if [[ ! -d "$desdir" ]]; then
   mkdir -p $desdir
 fi
 
+
 function recurring_filename {
   dir=$1 # dir is the directory where multiple names are clashing
   recur_name=$2 # recur_name is the recurring filename
   ext=$3 # ext is the extension of recur_name
-  j=1
+  local file=$recur_name
+  if [[ $ext != "" ]]; then
+    file=$file"."$ext
+  fi
+  #!/bin/bash
+
+  #!/bin/bash
+
+  file_name="find_list"
+  n=$(awk -F '#' -v file="${file}" '$1 == file { print $2 }' "$file_name")
+  j=$((n+1))
+  sed -i "s/${file}#${n}/${file}#${j}/" "$file_name"
+
   if [[ $ext == "" ]]; then
-    newfilepath=$desdir"/"$dir"/"$recur_name # newfilepath is the new name for a repeated filename in the same extdir
-    while [ -e "$newfilepath" ]; do
-      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j
-      let "j=j+1"
-    done
+    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j # newfilepath is the new name for a repeated filename in the same extdir
+    if [ -e "$newfilepath" ]; then
+      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
+    fi
   else
-    newfilepath=$desdir"/"$dir"/"$recur_name"."$ext # newfilepath is the new name for a repeated filename in the same extdir
-    while [ -e "$newfilepath" ]; do
-      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
-      let "j=j+1"
-    done
+    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext # newfilepath is the new name for a repeated filename in the same extdir
+    if [ -e "$newfilepath" ]; then
+      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
+    fi
   fi
   # now we have got the new name for a recurring filepath and echo it
   echo "$newfilepath"
@@ -162,7 +173,7 @@ function main {
   
   if [ $flag_e = true ]; then
     for element in ${array[@]}; do
-      if [ $ext = $element ]; then
+      if [[ $ext == $element ]]; then
         flag_search_e=true
       fi
     done
@@ -171,7 +182,7 @@ function main {
     continue
   fi
   if [ "$flag" == "ext" ]; then
-    if [ $(echo $filename | grep -c '^\.') -gt 0 ]; then #that means it is hidden file
+    if [[ $(echo $filename | grep -c '^\.') > 0 || $(echo $filename | grep -c '\.$') > 0 ]]; then #that means it is hidden file
       extdir="Hidden_Files"
     elif [ $(echo $filename | grep -c "\.") -ne 0 ]; then # -n ensures that the string returned is non-empty
       extdir="Extension_.$ext" # extdir is the extension directory
@@ -202,6 +213,7 @@ function main {
   if [ ! -e "$newfilepath" ]; then
     cp "$i" "$desdir/$extdir"
     echo -e "${GREEN}Added $filename to $extdir folder${NC}" >> output.txt
+    echo $filename"#0" >> find_list
   else
     new_newfilepath=$(recurring_filename "$extdir" "$name" "$ext")
     newname=$(basename "$new_newfilepath")
@@ -217,7 +229,7 @@ function main {
     echo "Unzipped $filename at $(date +"%Y-%m-%d %T")" >> log.txt
   fi
   #############################################################
-  
+
   # Delete the original file if the -d flag is specified
   if [ "$delete_files" = true ]; then
     rm "$i"
@@ -256,7 +268,7 @@ if [ $log_file = true ]; then
   mv log.txt $log_name
 else
   rm log.txt
-  sort output.txt
+  cat output.txt
   rm output.txt
 fi
 echo ""
@@ -264,6 +276,7 @@ print_message "$YELLOW" "Number of files in each folder:-"
 sort temp.txt | awk '{Grp[$1]++} END {for (Ind in Grp) {printf "%s\t|%s\n", Ind, Grp[Ind]}}'
 rm temp.txt
 rm hash_file
+rm find_list
 rm -r "Temp_Zip_Folder"
 
 # Goodbye message
