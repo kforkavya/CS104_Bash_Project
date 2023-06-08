@@ -256,11 +256,12 @@ if [ $log_file = true ]; then
   mv log.txt $log_name
 else
   rm log.txt
-  cat output.txt
+  sort output.txt
   rm output.txt
 fi
-echo -e "Number of files in each folder:-"
-awk '{Grp[$1]++} END {for (Ind in Grp) {printf "%s\t%s\n", Ind, Grp[Ind]}}' temp.txt
+echo ""
+print_message "$YELLOW" "Number of files in each folder:-"
+sort temp.txt | awk '{Grp[$1]++} END {for (Ind in Grp) {printf "%s\t|%s\n", Ind, Grp[Ind]}}'
 rm temp.txt
 rm hash_file
 rm -r "Temp_Zip_Folder"
