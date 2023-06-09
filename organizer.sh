@@ -23,6 +23,7 @@ log_file=false  # Log file flag, depends on -l flag presence
 log_name=""  # Name of log file as given by user with -l flag
 flag_s=false  # Flag for -s flag usage
 flag_e=false  # Flag for -e flag usage
+flag_i=false  # Flag for -i flag usage
 e_names=""  # Extensions entered through -e
 
 # Validate and process source directory
@@ -73,6 +74,7 @@ for ((i=2; i<${#args[@]}; i++)); do
     print_message "${RED}" "⚠️No argument with -s, use \"ext\" or \"date\"."
     exit 1
   elif [[ ${args[i]} == "-l" ]]; then
+    if [ $log_file = true ]; then print_message "${RED}" "⚠️Enter -l only 1 time. Entering more than one -s is wrong syntax."; exit 1; fi
     log_file=true
     log_name=${args[i+1]}
     if [[ $log_name == "-d" || $log_name == "-s" || $log_name == "-e" || $log_name == "-l" || $log_name == "" ]]; then
@@ -83,6 +85,7 @@ for ((i=2; i<${#args[@]}; i++)); do
   elif [[ ${args[i]} == "-e" ]]; then
     flag_e=true
     e_names=${args[i+1]}
+    if [ $flag_e = true ]; then print_message "${RED}" "⚠️Enter -e only 1 time. Entering more than one -e is wrong syntax."; exit 1; fi
     if [[ $e_names == "-d" || $e_names == "-s" || $e_names == "-e" || $e_names == "-l" || $e_names == "" ]]; then
       print_message "${RED}" "⚠️Put valid extensions for -e flag."
       exit 1
@@ -134,37 +137,51 @@ function recurring_filename {
   dir=$1 # dir is the directory where multiple names are clashing
   recur_name=$2 # recur_name is the recurring filename
   ext=$3 # ext is the extension of recur_name
+  local filename=$4
   local file=$recur_name
   if [[ $ext != "" ]]; then
     file=$file"."$ext
   fi
-  #!/bin/bash
-
-  #!/bin/bash
 
   file_name="find_list"
   n=$(awk -F '#' -v file="${file}" '$1 == file { print $2 }' "$file_name")
   j=$((n+1))
-  sed -i "s/${file}#${n}/${file}#${j}/" "$file_name"
 
   if [[ $ext == "" ]]; then
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j # newfilepath is the new name for a repeated filename in the same extdir
     if [ -e "$newfilepath" ]; then
       newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
       while [ -e $newfilepath ]; do
-        newfilepath=$newfilepath"_"$(date +"%Y-%m-%d_%T")
+        let "j=j+1"
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j
+        if [ ! -e $newfilepath ]; then break; fi
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
+      done
+    fi
+  elif [[ $(echo $filename | grep -c "\.$") == 1 ]]; then
+    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"." # newfilepath is the new name for a repeated filename in the same extdir
+    if [ -e "$newfilepath" ]; then
+      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."
+      while [ -e $newfilepath ]; do
+        let "j=j+1"
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."
+        if [ ! -e $newfilepath ]; then break; fi
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."
       done
     fi
   else
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext # newfilepath is the new name for a repeated filename in the same extdir
     if [ -e $newfilepath ]; then
-      s=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
-      while [ -e $s"."$ext ]; do
-        s=$s"_"$(date +"%Y-%m-%d_%T")
+      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
+      while [ -e $newfilepath ]; do
+        let "j=j+1"
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
+        if [ ! -e $newfilepath ]; then break; fi
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
       done
-      newfilepath=$s"."$ext
     fi
   fi
+  sed -i "s/${file}#${n}/${file}#${j}/" "$file_name"
   # now we have got the new name for a recurring filepath and echo it
   echo "$newfilepath"
 }
@@ -214,7 +231,7 @@ function main {
   # Keeping track of the times when which folders are used
   echo "$extdir" >> temp.txt
   #Updating log file
-  echo "Added $filename from $src_location to $desdir/$extdir folder at $(date +"%Y-%m-%d %T")" >> log.txt
+  echo "$(printf 'Added %-20s from %-25s to folder %-30s at %s\n' "$filename" "$src_location" "$desdir/$extdir" "$(date +"%Y-%m-%d %T")")" >> log.txt
   # Now checking if the same filename already exists
   newfilepath="$desdir/$extdir/$filename"
   if [ ! -e "$newfilepath" ]; then
@@ -222,7 +239,7 @@ function main {
     echo -e "${GREEN}Added $filename to $extdir folder${NC}" >> output.txt
     echo $filename"#0" >> find_list
   else
-    new_newfilepath=$(recurring_filename "$extdir" "$name" "$ext")
+    new_newfilepath=$(recurring_filename "$extdir" "$name" "$ext" "$filename")
     newname=$(basename "$new_newfilepath")
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
     echo "$filename already exists, so renamed to $newname and stored in $extdir directory" >> output.txt
@@ -241,7 +258,7 @@ function main {
   if [ "$delete_files" = true ]; then
     rm "$i"
     echo -e "${YELLOW}Deleted original file: $i${NC}" >> output.txt
-    echo "Deleted file: $i at $(date +"%Y-%m-%d %T")" >> log.txt
+    echo "$(printf 'Deleted file: %-25s at %s\n' "$i" "$(date +"%Y-%m-%d %T")")" >> log.txt
   fi
 done
 }
