@@ -252,15 +252,14 @@ function main {
     ctime=$(stat "$i" | awk '/Birth/ {print $2}' | awk 'BEGIN{FS="-"}{print $3$2$1}') # ctime is creation time
     extdir="$ctime" # extdir is the date directory
   elif [[ "$flag" == "size" ]]; then
-    file_size=$(stat -c "%s" "$i")
-    file_size_kB=$(($file_size/1024))
+    file_size_kB=$(stat -c "%s" "$i")
     floor=$(awk -v num="$file_size_kB" 'BEGIN { printf "%.0f", num }')
-    if [[ $floor < 10 ]]; then extdir="A"
-    elif [[ $floor < 20 ]]; then extdir="B"
-    elif [[ $floor < 30 ]]; then extdir="C"
-    elif [[ $floor < 40 ]]; then extdir="D"
-    elif [[ $floor < 50 ]]; then extdir="E"
-    else extdir="F"
+    if [[ $floor < 10 ]]; then extdir="0-10kBs"
+    elif [[ $floor < 20 ]]; then extdir="10-20kBs"
+    elif [[ $floor < 30 ]]; then extdir="20-30kBs"
+    elif [[ $floor < 40 ]]; then extdir="30-40kBs"
+    elif [[ $floor < 50 ]]; then extdir="40-50kBs"
+    else extdir="Gt50kBs"
     fi
   else
     echo -e "${RED}Invalid flag. Please use -s ext or -s date or -s size.${NC}"
