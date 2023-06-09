@@ -288,7 +288,7 @@ echo ""
 echo "Do you want to calculate the hash deletion? (yes/no)"
 read answer
 
-if [ "$answer" == "yes" ]; then
+if [[ "$answer" != "no" ]]; then
     # Perform the hash deletion calculation
     print_message "$YELLOW" "Performing hash deletion..."
     flag_hash=false
@@ -327,7 +327,9 @@ else
 fi
 echo ""
 print_message "$YELLOW" "Number of files in each folder:-"
-sort temp.txt | awk '{Grp[$1]++} END {for (Ind in Grp) {printf "%-20s | %-20s\n", Ind, Grp[Ind]}}'
+for i in `sort temp.txt | uniq`; do
+  printf "%-20s | %-20s\n" $i $(find $desdir"/"$i -type f | wc -l)
+done
 rm temp.txt
 rm hash_file
 rm find_list
