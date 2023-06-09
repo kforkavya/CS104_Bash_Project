@@ -195,20 +195,27 @@ function main {
   src_location="${i%/*}" #source location of file, found using formatted string
   name=$(echo "$filename" | sed 's/\(.*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/.*\.\([^\.]*\)/\1/') # ext is extension
-  
+  ext2=""
+
+  if [[ $(echo $filename | grep -c '^\.') == 0 ]]; then
+    if [[ $(echo $filename | grep -c '\.$') > 0 || $(echo $filename | grep -c '\.') == 0 ]]; then #No Extension Files
+      ext2="noext"
+    fi
+  fi
+
   if [ $flag_e = true ]; then
     for element in ${array[@]}; do
-      if [[ $ext == $element ]]; then
+      if [[ $ext == $element || $ext2 == $element ]]; then
         flag_search_e=true
       fi
     done
   fi
-  if [ $flag_search_e = true ]; then
+  if [[ $flag_search_e == true ]]; then
     continue
   fi
   if [ $flag_i = true ]; then
     for element in ${array[@]}; do
-      if [[ $ext == $element ]]; then
+      if [[ $ext == $element || $ext2 == $element ]]; then
         flag_search_i=true
       fi
     done
@@ -216,7 +223,7 @@ function main {
   if [[ $flag_search_i == false && $flag_i == true ]]; then
     continue
   fi
-  if [ "$flag" == "ext" ]; then
+  if [[ "$flag" == "ext" ]]; then
     if [[ $(echo $filename | grep -c '^\.') > 0 ]]; then #that means it is hidden file
       extdir="Hidden_Files"
     elif [[ $(echo $filename | grep -c '\.$') > 0 ]]; then
@@ -227,8 +234,7 @@ function main {
       extdir="No_Extension"
       ext=""
     fi
-  elif [ 
-    "$flag" == "date" ]; then
+  elif [[ "$flag" == "date" ]]; then
     ctime=$(stat "$i" | awk '/Birth/ {print $2}' | awk 'BEGIN{FS="-"}{print $3$2$1}') # ctime is creation time
     extdir="$ctime" # extdir is the date directory
   else
@@ -274,7 +280,7 @@ function main {
   # Delete the original file if the -d flag is specified
   if [[ "$delete_files" == true && $(echo $1 | grep -c "Temp_Zip_Folder") == 0 ]]; then
     rm "$i"
-    echo -e "${YELLOW}Deleted original file: $i${NC}" >> output.txt
+    echo -e "${YELLOW}Deleted original file: $i${NC}"
     echo "$(printf 'Deleted file: %-25s at %s\n' "$i" "$(date +"%Y-%m-%d %T")")" >> log.txt
   fi
 done
@@ -319,10 +325,10 @@ echo -e "                       Some Statistics      "
 echo -e "==============================================================${NC}"
 echo -e "Folders created: $(sort temp.txt | uniq | wc -l)"
 echo -e "Files transferred : $(cat temp.txt | wc -l)"
-if [[ $answer != "no" ]]; then echo -e "Files left after hash-check : $(cat hash_file| wc -l)"; fi
-if [ $log_file = true ]; then
+if [[ $answer != "no" ]]; then echo -e "Files left after hash-check : $(cat hash_file | wc -l)"; fi
+if [[ "$log_file" == true ]]; then
   echo -e "${GREEN}Log file created and saved as $log_name${NC}"
-  mv log.txt $log_name
+  mv log.txt "$log_name"
 else
   rm log.txt
 fi
