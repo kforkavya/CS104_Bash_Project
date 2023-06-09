@@ -319,6 +319,7 @@ echo -e "                       Some Statistics      "
 echo -e "==============================================================${NC}"
 echo -e "Folders created: $(sort temp.txt | uniq | wc -l)"
 echo -e "Files transferred : $(cat temp.txt | wc -l)"
+if [[ $answer != "no" ]]; then echo -e "Files left after hash-check : $(cat hash_file| wc -l)"; fi
 if [ $log_file = true ]; then
   echo -e "${GREEN}Log file created and saved as $log_name${NC}"
   mv log.txt $log_name
