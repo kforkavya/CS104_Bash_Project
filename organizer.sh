@@ -14,6 +14,48 @@ print_message() {
   echo -e "${color}${message}${NC}"
 }
 
+function recurring_filename {
+  dir=$1 # dir is the directory where multiple names are clashing
+  recur_name=$2 # recur_name is the recurring filename
+  ext=$3 # ext is the extension of recur_name
+  local filename=$4
+  local file=$recur_name
+  if [[ $ext != "" ]]; then
+    file=$file"."$ext
+  fi
+
+  file_name="find_list"
+  n=$(awk -F '#' -v file="${file}" '$1 == file { print $2 }' "$file_name")
+  j=$((n+1))
+
+  if [[ $ext == "" ]]; then
+    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j # newfilepath is the new name for a repeated filename in the same extdir
+    if [ -e "$newfilepath" ]; then
+      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
+      while [ -e $newfilepath ]; do
+        let "j=j+1"
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j
+        if [ ! -e $newfilepath ]; then break; fi
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
+      done
+    fi
+  else
+    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext # newfilepath is the new name for a repeated filename in the same extdir
+    if [ -e $newfilepath ]; then
+      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
+      while [ -e $newfilepath ]; do
+        let "j=j+1"
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
+        if [ ! -e $newfilepath ]; then break; fi
+        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
+      done
+    fi
+  fi
+  sed -i "s/${file}#${n}/${file}#${j}/" "$file_name"
+  # now we have got the new name for a recurring filepath and echo it
+  echo "$newfilepath"
+}
+
 # Check if the flag is provided
 srcdir=$1  # Source directory
 desdir=$2  # Destination directory
@@ -43,6 +85,7 @@ if [[ "$desdir" == "-l" || "$desdir" == "-d" || "$desdir" == "-e" || "$desdir" =
 fi
 
 # Check if the flag is provided
+args=("$@")
 args=("$@")
 for ((i=2; i<${#args[@]}; i++)); do
   if [[ ${args[i]} == "-d" ]]; then
@@ -77,25 +120,36 @@ for ((i=2; i<${#args[@]}; i++)); do
     if [ $log_file = true ]; then print_message "${RED}" "⚠️Enter -l only 1 time. Entering more than one -s is wrong syntax."; exit 1; fi
     log_file=true
     log_name=${args[i+1]}
-    if [[ $log_name == "-d" || $log_name == "-s" || $log_name == "-e" || $log_name == "-l" || $log_name == "" ]]; then
+    if [[ $log_name == "-d" || $log_name == "-s" || $log_name == "-e" || $log_name == "-l" || $log_name == "-i" || $log_name == "" ]]; then
       print_message "${RED}" "⚠️Put valid filename for log file."
       exit 1
     fi
     ((i=i+1))
   elif [[ ${args[i]} == "-e" ]]; then
+    if [ $flag_e = true ]; then print_message "${RED}" "⚠️Enter -e only 1 time. Entering more than one -e is wrong syntax."; exit 1; fi
     flag_e=true
     e_names=${args[i+1]}
-    if [ $flag_e = true ]; then print_message "${RED}" "⚠️Enter -e only 1 time. Entering more than one -e is wrong syntax."; exit 1; fi
-    if [[ $e_names == "-d" || $e_names == "-s" || $e_names == "-e" || $e_names == "-l" || $e_names == "" ]]; then
+    if [[ $e_names == "-d" || $e_names == "-s" || $e_names == "-e" || $e_names == "-l" || $e_names == "-i" || $e_names == "" ]]; then
       print_message "${RED}" "⚠️Put valid extensions for -e flag."
       exit 1
     fi
     IFS=',' read -ra array <<< "$e_names"
     ((i=i+1))
+  elif [[ ${args[i]} == "-i" ]]; then
+    if [ $flag_i = true ]; then print_message "${RED}" "⚠️Enter -i only 1 time. Entering more than one -i is wrong syntax."; exit 1; fi
+    flag_i=true
+    i_names=${args[i+1]}
+    if [[ $i_names == "-d" || $i_names == "-s" || $i_names == "-e" || $i_names == "-l" || $i_names == "-i" || $i_names == "" ]]; then
+      print_message "${RED}" "⚠️Put valid extensions for -i flag."
+      exit 1
+    fi
+    IFS=',' read -ra array <<< "$i_names"
+    ((i=i+1))
   else
-    print_message "${RED}" "⚠️Invalid flag. Please try filling correct flags: -d, -s, -l, -e"
+    print_message "${RED}" "⚠️Invalid flag. Please try filling correct flags: -d, -s, -l, -e, -i"
     exit 1
   fi
+  if [[ $flag_e == true && $flag_i == true ]]; then print_message "${RED}" "⚠️Enter -i or -e only 1 time. Entering both -i and -e is wrong syntax."; exit 1; fi
 done
 
 touch output.txt # keeping track of files transferred
@@ -132,64 +186,11 @@ if [[ ! -d "$desdir" ]]; then
   mkdir -p $desdir
 fi
 
-
-function recurring_filename {
-  dir=$1 # dir is the directory where multiple names are clashing
-  recur_name=$2 # recur_name is the recurring filename
-  ext=$3 # ext is the extension of recur_name
-  local filename=$4
-  local file=$recur_name
-  if [[ $ext != "" ]]; then
-    file=$file"."$ext
-  fi
-
-  file_name="find_list"
-  n=$(awk -F '#' -v file="${file}" '$1 == file { print $2 }' "$file_name")
-  j=$((n+1))
-
-  if [[ $ext == "" ]]; then
-    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j # newfilepath is the new name for a repeated filename in the same extdir
-    if [ -e "$newfilepath" ]; then
-      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
-      while [ -e $newfilepath ]; do
-        let "j=j+1"
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j
-        if [ ! -e $newfilepath ]; then break; fi
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
-      done
-    fi
-  elif [[ $(echo $filename | grep -c "\.$") == 1 ]]; then
-    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"." # newfilepath is the new name for a repeated filename in the same extdir
-    if [ -e "$newfilepath" ]; then
-      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."
-      while [ -e $newfilepath ]; do
-        let "j=j+1"
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."
-        if [ ! -e $newfilepath ]; then break; fi
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."
-      done
-    fi
-  else
-    newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext # newfilepath is the new name for a repeated filename in the same extdir
-    if [ -e $newfilepath ]; then
-      newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
-      while [ -e $newfilepath ]; do
-        let "j=j+1"
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
-        if [ ! -e $newfilepath ]; then break; fi
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
-      done
-    fi
-  fi
-  sed -i "s/${file}#${n}/${file}#${j}/" "$file_name"
-  # now we have got the new name for a recurring filepath and echo it
-  echo "$newfilepath"
-}
-
 # Now extracting files and checking their extensions and creation time
 function main {
  find $1 -type f -printf '%p\n' | while read -r i; do
   flag_search_e=false
+  flag_search_i=false
   filename=$(basename "$i")
   src_location="${i%/*}" #source location of file, found using formatted string
   name=$(echo "$filename" | sed 's/\(.*\)\.[^\.]*/\1/') # name without extension
@@ -205,9 +206,21 @@ function main {
   if [ $flag_search_e = true ]; then
     continue
   fi
+  if [ $flag_i = true ]; then
+    for element in ${array[@]}; do
+      if [[ $ext == $element ]]; then
+        flag_search_i=true
+      fi
+    done
+  fi
+  if [[ $flag_search_i == false && $flag_i == true ]]; then
+    continue
+  fi
   if [ "$flag" == "ext" ]; then
-    if [[ $(echo $filename | grep -c '^\.') > 0 || $(echo $filename | grep -c '\.$') > 0 ]]; then #that means it is hidden file
+    if [[ $(echo $filename | grep -c '^\.') > 0 ]]; then #that means it is hidden file
       extdir="Hidden_Files"
+    elif [[ $(echo $filename | grep -c '\.$') > 0 ]]; then
+      extdir="No_Extension"
     elif [ $(echo $filename | grep -c "\.") -ne 0 ]; then # -n ensures that the string returned is non-empty
       extdir="Extension_.$ext" # extdir is the extension directory
     else
@@ -241,6 +254,9 @@ function main {
   else
     new_newfilepath=$(recurring_filename "$extdir" "$name" "$ext" "$filename")
     newname=$(basename "$new_newfilepath")
+    if [[ $(echo $filename | grep -c '\.$') > 0 ]]; then
+      new_newfilepath=$new_newfilepath"."
+    fi
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
     echo "$filename already exists, so renamed to $newname and stored in $extdir directory" >> output.txt
   fi
@@ -255,7 +271,7 @@ function main {
   #############################################################
 
   # Delete the original file if the -d flag is specified
-  if [ "$delete_files" = true ]; then
+  if [[ "$delete_files" == true && $(echo $1 | grep -c "Temp_Zip_Folder") == 0 ]]; then
     rm "$i"
     echo -e "${YELLOW}Deleted original file: $i${NC}" >> output.txt
     echo "$(printf 'Deleted file: %-25s at %s\n' "$i" "$(date +"%Y-%m-%d %T")")" >> log.txt
