@@ -23,12 +23,16 @@ function recurring_filename {
   if [[ $ext != "" ]]; then
     file=$file"."$ext
   fi
-
+  newfilepath=$desdir"/"$dir"/"$filename"#"
   file_name="find_list"
-  n=$(awk -F '#' -v file="${file}" '$1 == file { print $2 }' "$file_name")
-  j=$((n+1))
+  declare -i n j
+  n=$(awk -F '#' -v file="$file" '$1 == file { print $2 }' "$file_name")
+  if [[ -z "$n" ]]; then
+    n=0
+  fi
+  ((j = n + 1))
 
-  if [[ $ext == "" ]]; then
+  if [[ $ext == "" || $(echo $filename | grep -c "\.") == 0 ]]; then
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j # newfilepath is the new name for a repeated filename in the same extdir
     if [ -e "$newfilepath" ]; then
       newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
@@ -44,7 +48,7 @@ function recurring_filename {
     if [ -e $newfilepath ]; then
       newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
       while [ -e $newfilepath ]; do
-        let "j=j+1"
+        let "n=n+1"
         newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
         if [ ! -e $newfilepath ]; then break; fi
         newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
@@ -113,8 +117,17 @@ for ((i=2; i<${#args[@]}; i++)); do
       print_message "${RED}" "⚠️Enter -s only 1 time. Entering more than one -s is wrong syntax."
       exit 1
     fi
-  elif [[ ${args[i]} == "-s" && ${args[i+1]} != "date" && ${args[i+1]} != "ext" ]]; then
-    print_message "${RED}" "⚠️No argument with -s, use \"ext\" or \"date\"."
+  elif [[ ${args[i]} == "-s" && ${args[i+1]} == "size" ]]; then
+    if [ $flag_s = false ]; then
+      flag="size"
+      ((i=i+1))
+      flag_s=true
+    else
+      print_message "${RED}" "⚠️Enter -s only 1 time. Entering more than one -s is wrong syntax."
+      exit 1
+    fi
+  elif [[ ${args[i]} == "-s" && ${args[i+1]} != "date" && ${args[i+1]} != "ext" && ${args[i+1]} != "size" ]]; then
+    print_message "${RED}" "⚠️No argument with -s, use \"ext\" or \"date\" or \"size\"."
     exit 1
   elif [[ ${args[i]} == "-l" ]]; then
     if [ $log_file = true ]; then print_message "${RED}" "⚠️Enter -l only 1 time. Entering more than one -s is wrong syntax."; exit 1; fi
@@ -152,7 +165,6 @@ for ((i=2; i<${#args[@]}; i++)); do
   if [[ $flag_e == true && $flag_i == true ]]; then print_message "${RED}" "⚠️Enter -i or -e only 1 time. Entering both -i and -e is wrong syntax."; exit 1; fi
 done
 
-touch output.txt # keeping track of files transferred
 touch temp.txt
 touch log.txt #log file for -l flag
 touch hash_file #file that contains hash of visited objects
@@ -200,6 +212,8 @@ function main {
   if [[ $(echo $filename | grep -c '^\.') == 0 ]]; then
     if [[ $(echo $filename | grep -c '\.$') > 0 || $(echo $filename | grep -c '\.') == 0 ]]; then #No Extension Files
       ext2="noext"
+      ext=""
+      name=$filename
     fi
   fi
 
@@ -237,8 +251,19 @@ function main {
   elif [[ "$flag" == "date" ]]; then
     ctime=$(stat "$i" | awk '/Birth/ {print $2}' | awk 'BEGIN{FS="-"}{print $3$2$1}') # ctime is creation time
     extdir="$ctime" # extdir is the date directory
+  elif [[ "$flag" == "size" ]]; then
+    file_size=$(stat -c "%s" "$i")
+    file_size_kB=$(($file_size/1024))
+    floor=$(awk -v num="$file_size_kB" 'BEGIN { printf "%.0f", num }')
+    if [[ $floor < 10 ]]; then extdir="A"
+    elif [[ $floor < 20 ]]; then extdir="B"
+    elif [[ $floor < 30 ]]; then extdir="C"
+    elif [[ $floor < 40 ]]; then extdir="D"
+    elif [[ $floor < 50 ]]; then extdir="E"
+    else extdir="F"
+    fi
   else
-    echo -e "${RED}Invalid flag. Please use -s ext or -s date.${NC}"
+    echo -e "${RED}Invalid flag. Please use -s ext or -s date or -s size.${NC}"
     exit 1
   fi
 
