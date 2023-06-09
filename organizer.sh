@@ -227,7 +227,8 @@ function main {
       extdir="No_Extension"
       ext=""
     fi
-  elif [ "$flag" == "date" ]; then
+  elif [ 
+    "$flag" == "date" ]; then
     ctime=$(stat "$i" | awk '/Birth/ {print $2}' | awk 'BEGIN{FS="-"}{print $3$2$1}') # ctime is creation time
     extdir="$ctime" # extdir is the date directory
   else
@@ -238,7 +239,7 @@ function main {
   # check if extdir exists or not
   if [ ! -e "$desdir/$extdir" ]; then
     mkdir "$desdir/$extdir" # create a new extdir
-    echo -e "${GREEN}A new $flag folder $extdir is created${NC}" >> output.txt
+    echo -e "${GREEN}A new $flag folder $extdir is created${NC}"
   fi
 
   # Keeping track of the times when which folders are used
@@ -249,7 +250,7 @@ function main {
   newfilepath="$desdir/$extdir/$filename"
   if [ ! -e "$newfilepath" ]; then
     cp "$i" "$desdir/$extdir"
-    echo -e "${GREEN}Added $filename to $extdir folder${NC}" >> output.txt
+    echo -e "${GREEN}Added $filename to $extdir folder${NC}"
     echo $filename"#0" >> find_list
   else
     new_newfilepath=$(recurring_filename "$extdir" "$name" "$ext" "$filename")
@@ -258,14 +259,14 @@ function main {
       new_newfilepath=$new_newfilepath"."
     fi
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
-    echo "$filename already exists, so renamed to $newname and stored in $extdir directory" >> output.txt
+    echo "$filename already exists, so renamed to $newname and stored in $extdir directory"
   fi
   
   #############################################################
   if [[ $ext == "zip" ]]; then
     unzip $i -d "Temp_Zip_Folder"
     main "Temp_Zip_Folder/"$name"/"
-    echo -e "${GREEN}Unzipping $filename${NC}" >> output.txt
+    echo -e "${GREEN}Unzipping $filename${NC}"
     echo "Unzipped $filename at $(date +"%Y-%m-%d %T")" >> log.txt
   fi
   #############################################################
@@ -283,37 +284,50 @@ main $srcdir
 
 ###############################################################
 #Hash Deleting Files
-flag_hash=false
-find $desdir -type f -printf '%p\n' | while read -r i; do
-  filename=$(basename $i)
-  flag_hash=false
-  hash=$(sha256sum "$i")
-  for j in $(cat hash_file); do
-    if [[ $hash == $j ]]; then
-      flag_hash=true
-      break
-    fi
-  done
-  if [ $flag_hash = true ]; then
-    rm $i
-  else
-    echo $hash >> hash_file
-  fi
-done
-###############################################################
+echo ""
+echo "Do you want to calculate the hash deletion? (yes/no)"
+read answer
 
+if [ "$answer" == "yes" ]; then
+    # Perform the hash deletion calculation
+    print_message "$YELLOW" "Performing hash deletion..."
+    flag_hash=false
+    find $desdir -type f -printf '%p\n' | while read -r i; do
+      filename=$(basename $i)
+      flag_hash=false
+      hash=$(sha256sum "$i" | cut -d ' ' -f 1)
+      for j in $(cat hash_file); do
+        if [[ $hash == $j ]]; then
+          flag_hash=true
+          break
+        fi
+      done
+      if [ $flag_hash = true ]; then
+        rm "$i"
+      else
+        echo $hash >> hash_file
+      fi
+    done
+    # Your code for hash deletion goes here
+else
+    print_message "$YELLOW" "Skipping hash deletion."
+fi
+###############################################################
+echo ""
+echo -e "${BLUE}=============================================================="
+echo -e "                       Some Statistics      "
+echo -e "==============================================================${NC}"
 echo -e "Folders created: $(sort temp.txt | uniq | wc -l)"
+echo -e "Files transferred : $(cat temp.txt | wc -l)"
 if [ $log_file = true ]; then
   echo -e "${GREEN}Log file created and saved as $log_name${NC}"
   mv log.txt $log_name
 else
   rm log.txt
-  cat output.txt
-  rm output.txt
 fi
 echo ""
 print_message "$YELLOW" "Number of files in each folder:-"
-sort temp.txt | awk '{Grp[$1]++} END {for (Ind in Grp) {printf "%s\t|%s\n", Ind, Grp[Ind]}}'
+sort temp.txt | awk '{Grp[$1]++} END {for (Ind in Grp) {printf "%-20s | %-20s\n", Ind, Grp[Ind]}}'
 rm temp.txt
 rm hash_file
 rm find_list
@@ -321,7 +335,7 @@ rm -r "Temp_Zip_Folder"
 
 # Goodbye message
 echo -e "${BLUE}=============================================================="
-echo -e "        Script Execution Completed Successfully!      "
+echo -e "           Script Execution Completed Successfully!      "
 echo -e "==============================================================${NC}"
 echo -e "${YELLOW}"
 echo -e "███████╗██╗  ██╗ █████╗ ████████╗██╗  ██╗██╗████████╗"
