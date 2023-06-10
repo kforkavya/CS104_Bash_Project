@@ -217,6 +217,7 @@ function main {
   flag_search_e=false
   flag_search_i=false
   filename=$(basename "$i")
+  if [[ $filename == "..." ]]; then continue; fi
   src_location="${i%/*}" #source location of file, found using formatted string
   name=$(echo "$filename" | sed 's/\(.*\)\.[^\.]*/\1/') # name without extension
   ext=$(echo "$filename" | sed 's/.*\.\([^\.]*\)/\1/') # ext is extension
@@ -227,6 +228,9 @@ function main {
       ext2="noext"
       ext=""
       name=$filename
+      if [[ $(echo $filename | grep -c '\.$') > 0 ]]; then
+        name=$(echo $filename | sed 's/\([^\.]*\)\./\1/')
+      fi
     fi
   fi
 
