@@ -26,7 +26,7 @@ function recurring_filename {
   newfilepath=$desdir"/"$dir"/"$filename"#"
   file_name="find_list"
   declare -i n j
-  n=$(awk -F '#' -v file="$file" '$1 == file { print $2 }' "$file_name")
+  n=$(sed -n "s/^${file}#\([0-9]\+\)$/\1/p" "$file_name")
   if [[ -z "$n" ]]; then
     n=0
   fi
@@ -36,27 +36,35 @@ function recurring_filename {
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j # newfilepath is the new name for a repeated filename in the same extdir
     if [ -e "$newfilepath" ]; then
       newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
-      while [ -e $newfilepath ]; do
-        let "j=j+1"
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j
-        if [ ! -e $newfilepath ]; then break; fi
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
-      done
     fi
   else
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext # newfilepath is the new name for a repeated filename in the same extdir
+    s=$desdir"/"$dir"/"$recur_name"_"$j
     if [ -e $newfilepath ]; then
       newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
-      while [ -e $newfilepath ]; do
-        let "n=n+1"
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext
-        if [ ! -e $newfilepath ]; then break; fi
-        newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
-      done
+      s=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
     fi
   fi
   sed -i "s/${file}#${n}/${file}#${j}/" "$file_name"
+  if [[ $ext != "" &&  $(cat find_list | grep -c "^${recur_name}\.[^\.]*#") == 0 ]]; then
+    newfilepath=$desdir"/"$dir"/"$recur_name"_"$(date +"%Y-%m-%d_%T")"."$ext
+    s=$desdir"/"$dir"/"$recur_name"_"$(date +"%Y-%m-%d_%T")
+    echo $filename"#0" >> find_list
+  elif [[ $(cat find_list | grep -c "^${file}#") == 0 ]]; then
+    newfilepath=$desdir"/"$dir"/"$recur_name"_"$(date +"%Y-%m-%d_%T")
+    if [[ $ext != "" ]]; then newfilepath=$desdir"/"$dir"/"$recur_name"_"$(date +"%Y-%m-%d_%T")"."$ext; fi
+    echo $filename"#0" >> find_list
+  fi
   # now we have got the new name for a recurring filepath and echo it
+  while [[ -e $newfilepath && $ext == "" ]]; do
+    newfilepath=$newfilepath"_"$(date +"%Y-%m-%d_%T")
+  done
+  if [[ $ext != "" ]]; then
+    while [[ -e $s"."$ext ]]; do
+      s=$s"_"$(date +"%Y-%m-%d_%T")
+    done
+    newfilepath=$s"."$ext
+  fi
   echo "$newfilepath"
 }
 
@@ -291,7 +299,7 @@ function main {
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
     echo "$filename already exists, so renamed to $newname and stored in $extdir directory"
   fi
-  
+
   #############################################################
   if [[ $ext == "zip" ]]; then
     unzip $i -d "Temp_Zip_Folder"
