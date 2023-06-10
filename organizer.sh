@@ -233,6 +233,7 @@ function main {
     done
   fi
   if [[ $flag_search_e == true ]]; then
+    print_message "${RED}" "Excluding $i as per -e flag."
     continue
   fi
   if [ $flag_i = true ]; then
@@ -297,7 +298,7 @@ function main {
       new_newfilepath=$new_newfilepath"."
     fi
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
-    echo "$filename already exists, so renamed to $newname and stored in $extdir directory"
+    print_message "${BLUE}" "$filename already exists, so renamed to $newname and stored in $extdir directory"
   fi
 
   #############################################################
