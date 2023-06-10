@@ -283,7 +283,7 @@ function main {
   # check if extdir exists or not
   if [ ! -e "$desdir/$extdir" ]; then
     mkdir "$desdir/$extdir" # create a new extdir
-    echo -e "${GREEN}A new $flag folder $extdir is created${NC}"
+    echo -e "${YELLOW}A new $flag folder $extdir is created${NC}"
   fi
 
   # Keeping track of the times when which folders are used
