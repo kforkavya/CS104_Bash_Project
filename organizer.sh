@@ -81,18 +81,19 @@ flag_i=false  # Flag for -i flag usage
 e_names=""  # Extensions entered through -e
 
 # Validate and process source directory
-if [[ -z "$srcdir" ]]; then
-  print_message "${RED}" "⚠️ Error: Source directory not provided. Please provide the source directory as the first argument."
+
+if [[ "$srcdir" == "-l" || "$srcdir" == "-d" || "$srcdir" == "-e" || "$srcdir" == "-s" || "$srcdir" == "-i" || "$srcdir" == "" ]]; then
+  print_message "${RED}" "⚠️ Error: Provide a valid source directory argument."
+  exit 1
+fi
+
+if [[ "$desdir" == "-l" || "$desdir" == "-d" || "$desdir" == "-e" || "$desdir" == "-s" || "$desdir" == "-i" || "$desdir" == "" ]]; then
+  print_message "${RED}" "⚠️ Error: Provide a valid destination directory argument."
   exit 1
 fi
 
 if [[ ! -d "$srcdir" ]]; then
   print_message "${RED}" "⚠️ Error: Source directory '$srcdir' does not exist."
-  exit 1
-fi
-
-if [[ "$desdir" == "-l" || "$desdir" == "-d" || "$desdir" == "-e" || "$desdir" == "-s" || "$desdir" == "" ]]; then
-  print_message "${RED}" "⚠️ Error: Provide an destination directory argument."
   exit 1
 fi
 
@@ -179,12 +180,6 @@ touch hash_file #file that contains hash of visited objects
 mkdir "Temp_Zip_Folder"
 touch find_list
 
-# Validate and process destination directory
-if [[ -z "$desdir" ]]; then
-  print_message "${RED}" "⚠️ Error: Destination directory not provided. Please provide the destination directory as the second argument."
-  exit 1
-fi
-
 # Welcome message
 echo -e "${BLUE}==============================================="
 echo -e "          Welcome to the Amazing Script         "
@@ -204,6 +199,16 @@ if [[ ! -d "$desdir" ]]; then
   print_message "${RED}" "⚠️ Error: Destination directory '$desdir' does not exist."
   print_message "${GREEN}" "Don't worry creating one..."
   mkdir -p $desdir
+fi
+
+flag_e_display=true
+if [[ $flag_e == true ]]; then #Asks the user whether he wants to see exclude output messages of -e flag
+  echo ""
+  echo "Seems you have used my -e custom flag..."
+  print_message "${YELLOW}" "Do you want to see the excluded files as per the -e flag ? (yes/no)"
+  read ans
+  echo ""
+  if [[ $ans == "no" ]]; then flag_e_display=false; fi
 fi
 
 # Now extracting files and checking their extensions and creation time
@@ -233,7 +238,7 @@ function main {
     done
   fi
   if [[ $flag_search_e == true ]]; then
-    print_message "${RED}" "Excluding $i as per -e flag."
+    if [[ $flag_e_display == true ]]; then print_message "${RED}" "Excluding $i as per -e flag."; fi
     continue
   fi
   if [ $flag_i = true ]; then
