@@ -288,7 +288,11 @@ function main {
   # check if extdir exists or not
   if [ ! -e "$desdir/$extdir" ]; then
     mkdir "$desdir/$extdir" # create a new extdir
-    echo -e "${YELLOW}A new $flag folder $extdir is created${NC}"
+    if [[ $delete_files == false ]]; then
+      print_message "${YELLOW}" "A new $flag folder $extdir is created."
+    else
+      echo "A new $flag folder $extdir is created."
+    fi
     echo "$extdir" >> temp_new_folder.txt
   else
     flag_2=false
