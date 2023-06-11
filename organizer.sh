@@ -175,6 +175,7 @@ for ((i=2; i<${#args[@]}; i++)); do
 done
 
 touch temp.txt
+touch temp_new_folder.txt
 touch log.txt #log file for -l flag
 touch hash_file #file that contains hash of visited objects
 mkdir "Temp_Zip_Folder"
@@ -288,6 +289,13 @@ function main {
   if [ ! -e "$desdir/$extdir" ]; then
     mkdir "$desdir/$extdir" # create a new extdir
     echo -e "${YELLOW}A new $flag folder $extdir is created${NC}"
+    echo "$extdir" >> temp_new_folder.txt
+  else
+    flag_2=false
+    for j in `cat temp.txt`; do
+      if [[ $j == $extdir ]]; then flag_2=true; fi
+    done
+    if [[ $flag_2 == false ]]; then print_message "${RED}" "\"$extdir\" folder already existed so not creating a new one ..."; fi
   fi
 
   # Keeping track of the times when which folders are used
@@ -365,7 +373,7 @@ echo ""
 echo -e "${BLUE}=============================================================="
 echo -e "                       Some Statistics      "
 echo -e "==============================================================${NC}"
-echo -e "Folders created: $(sort temp.txt | uniq | wc -l)"
+echo -e "Folders created: $(cat temp_new_folder.txt | wc -l)"
 echo -e "Files transferred : $(cat temp.txt | wc -l)"
 if [[ $answer != "no" ]]; then echo -e "Files left after hash-check : $(cat hash_file | wc -l)"; fi
 if [[ "$log_file" == true ]]; then
@@ -380,6 +388,7 @@ for i in `sort temp.txt | uniq`; do
   printf "%-20s | %-20s\n" $i $(find $desdir"/"$i -type f | wc -l)
 done
 rm temp.txt
+rm temp_new_folder.txt
 rm hash_file
 rm find_list
 rm -r "Temp_Zip_Folder"
