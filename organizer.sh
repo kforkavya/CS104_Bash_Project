@@ -325,10 +325,11 @@ function main {
   #############################################################
   if [[ $ext == "zip" ]]; then
     echo -e "${GREEN}Unzipping $filename${NC}"
-    mkdir -p "Temp_Zip_Folder/"$name"/"
-    unzip -o "$i" -d "Temp_Zip_Folder"
-    main "Temp_Zip_Folder/"$name"/"
+    mkdir -p $src_location"/Temp_Zip_Folder/"$name"/"
+    unzip -o "$i" -d "$src_location/Temp_Zip_Folder"
+    main $src_location"/Temp_Zip_Folder/"$name"/"
     echo "Unzipped $filename at $(date +"%Y-%m-%d %T")" >> log.txt
+    rm -r $src_location"/Temp_Zip_Folder/"
   fi
   #############################################################
 
@@ -396,6 +397,7 @@ rm temp.txt
 rm temp_new_folder.txt
 rm hash_file
 rm find_list
+rm -r "Temp_Zip_Folder"
 
 # Goodbye message
 echo -e "${BLUE}=============================================================="
