@@ -32,7 +32,7 @@ function recurring_filename {
   fi
   ((j = n + 1))
 
-  if [[ $ext == "" || $(echo $filename | grep -c "\.") == 0 ]]; then
+  if [[ $ext == "" || $(echo "$filename" | grep -c "\.") == 0 ]]; then
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j # newfilepath is the new name for a repeated filename in the same extdir
     if [ -e "$newfilepath" ]; then
       newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
@@ -40,7 +40,7 @@ function recurring_filename {
   else
     newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"."$ext # newfilepath is the new name for a repeated filename in the same extdir
     s=$desdir"/"$dir"/"$recur_name"_"$j
-    if [ -e $newfilepath ]; then
+    if [ -e "$newfilepath" ]; then
       newfilepath=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")"."$ext
       s=$desdir"/"$dir"/"$recur_name"_"$j"_"$(date +"%Y-%m-%d_%T")
     fi
@@ -56,7 +56,7 @@ function recurring_filename {
     echo $filename"#0" >> find_list
   fi
   # now we have got the new name for a recurring filepath and echo it
-  while [[ -e $newfilepath && $ext == "" ]]; do
+  while [[ -e "$newfilepath" && $ext == "" ]]; do
     newfilepath=$newfilepath"_"$(date +"%Y-%m-%d_%T")
   done
   if [[ $ext != "" ]]; then
@@ -324,9 +324,10 @@ function main {
 
   #############################################################
   if [[ $ext == "zip" ]]; then
-    unzip $i -d "Temp_Zip_Folder"
-    main "Temp_Zip_Folder/"$name"/"
     echo -e "${GREEN}Unzipping $filename${NC}"
+    mkdir -p "Temp_Zip_Folder/"$name"/"
+    unzip -o "$i" -d "Temp_Zip_Folder"
+    main "Temp_Zip_Folder/"$name"/"
     echo "Unzipped $filename at $(date +"%Y-%m-%d %T")" >> log.txt
   fi
   #############################################################
@@ -395,7 +396,6 @@ rm temp.txt
 rm temp_new_folder.txt
 rm hash_file
 rm find_list
-rm -r "Temp_Zip_Folder"
 
 # Goodbye message
 echo -e "${BLUE}=============================================================="
