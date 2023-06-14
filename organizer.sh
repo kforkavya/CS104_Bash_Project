@@ -212,6 +212,12 @@ if [[ $flag_e == true ]]; then #Asks the user whether he wants to see exclude ou
   if [[ $ans == "no" ]]; then flag_e_display=false; fi
 fi
 
+zip_unzip=false
+print_message "${YELLOW}" "Do you want to unzip the zipped files (yes/no) ?"
+read ans_zip
+if [[ $ans_zip != "no" ]]; then zip_unzip=true; fi
+echo ""
+
 # Now extracting files and checking their extensions and creation time
 function main {
  find $1 -type f -printf '%p\n' | while read -r i; do
@@ -324,10 +330,10 @@ function main {
   fi
 
   #############################################################
-  if [[ $ext == "zip" ]]; then
-    echo -e "${GREEN}Unzipping $filename${NC}"
+  if [[ $ext == "zip" && $zip_unzip == true ]]; then
+    echo -e "Unzipping $filename"
     mkdir -p $src_location"/Temp_Zip_Folder/"$name"/"
-    unzip -o "$i" -d "$src_location/Temp_Zip_Folder"
+    unzip -o -q "$i" -d "$src_location/Temp_Zip_Folder"
     main $src_location"/Temp_Zip_Folder/"$name"/"
     echo "Unzipped $filename at $(date +"%Y-%m-%d %T")" >> log.txt
     rm -r $src_location"/Temp_Zip_Folder/"
