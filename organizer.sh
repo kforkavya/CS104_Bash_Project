@@ -320,6 +320,7 @@ function main {
     fi
     cp "$i" "$new_newfilepath" # this copies the recurring file with the correct name
     print_message "${BLUE}" "$filename already exists, so renamed to $newname and stored in $extdir directory"
+    echo "$i already exists, so renamed to $newname and stored in $extdir directory" >> log.txt
   fi
 
   #############################################################
